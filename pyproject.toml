@@ -1,0 +1,20 @@
+[project]
+name = "eeql"
+version = "0.0.1"
+description = "EEQL (Event-Entity Query Language): a query language and Python toolkit for event-entity data models."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "Bryce Codell", email = "you@example.com" }
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/daisydatahq/eeql"
+Repository = "https://github.com/daisydatahq/eeql"
+Issues = "https://github.com/daisydatahq/eeql/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
