@@ -8,7 +8,13 @@ license = { text = "Apache-2.0" }
 authors = [
   { name = "Bryce Codell", email = "you@example.com" }
 ]
-dependencies = []
+dependencies = [
+    "networkx~=3.0",
+    "pydantic>=2.0,<3.0",
+    "pyyaml>=6.0.3",
+    "snowflake-connector-python>=4.1.1,<5.0.0",
+    "sqlglot>=23,<24",
+]
 
 [project.urls]
 Homepage = "https://github.com/daisydatahq/eeql"
