@@ -7,8 +7,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - pyproject.toml
 
 permissions:
   contents: read
@@ -77,16 +75,29 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Check version file change
+        id: version_change
+        run: |
+          if git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -qx "pyproject.toml"; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Set up Python
+        if: steps.version_change.outputs.changed == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
       - name: Install build tooling
+        if: steps.version_change.outputs.changed == 'true'
         run: |
           python -m pip install --upgrade pip
           python -m pip install build twine tomli
       - name: Get package version
         id: get_version
+        if: steps.version_change.outputs.changed == 'true'
         run: |
           python - <<'PY'
           import os
@@ -101,6 +112,7 @@ jobs:
           PY
       - name: Check if version exists on PyPI
         id: pypi_check
+        if: steps.version_change.outputs.changed == 'true'
         env:
           VERSION: ${{ steps.get_version.outputs.version }}
         run: |
@@ -122,22 +134,26 @@ jobs:
             f.write(f"exists={str(exists).lower()}\n")
           PY
       - name: Skip publish (version exists)
-        if: steps.pypi_check.outputs.exists == 'true'
+        if: steps.version_change.outputs.changed == 'true' && steps.pypi_check.outputs.exists == 'true'
         run: |
           echo "Version ${{ steps.get_version.outputs.version }} already exists on PyPI. Skipping." >> "$GITHUB_STEP_SUMMARY"
       - name: Build package
-        if: steps.pypi_check.outputs.exists != 'true'
+        if: steps.version_change.outputs.changed == 'true' && steps.pypi_check.outputs.exists != 'true'
         run: python -m build
       - name: Validate package
-        if: steps.pypi_check.outputs.exists != 'true'
+        if: steps.version_change.outputs.changed == 'true' && steps.pypi_check.outputs.exists != 'true'
         run: twine check dist/*
       - name: Upload to PyPI
-        if: steps.pypi_check.outputs.exists != 'true'
+        if: steps.version_change.outputs.changed == 'true' && steps.pypi_check.outputs.exists != 'true'
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: twine upload dist/*
       - name: Report published version
-        if: steps.pypi_check.outputs.exists != 'true'
+        if: steps.version_change.outputs.changed == 'true' && steps.pypi_check.outputs.exists != 'true'
         run: |
           echo "Published eeql ${{ steps.get_version.outputs.version }} to PyPI." >> "$GITHUB_STEP_SUMMARY"
+      - name: Skip publish (no version change)
+        if: steps.version_change.outputs.changed != 'true'
+        run: |
+          echo "No pyproject.toml change detected. Skipping publish." >> "$GITHUB_STEP_SUMMARY"
