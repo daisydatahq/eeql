@@ -1,0 +1,58 @@
+// EEQL grammar (syntax only)
+// Based on eeql_spec.pdf
+
+?start: query
+
+query: select_clause join_clause*
+
+select_clause: "select" selector? EVENT_NAME paren_block
+
+join_clause: "join" selector? join_qualifier EVENT_NAME paren_block
+
+selector: "first"   -> first
+        | "last"    -> last
+        | "all"     -> all
+        | nth
+
+nth: "nth" "(" INT ")"
+
+join_qualifier: JOIN_QUALIFIER
+JOIN_QUALIFIER: "before" | "since" | "between" | "after" | "all"
+
+paren_block: "(" _NL? block_item (","? _NL? block_item)* _NL? ")"
+
+block_item: default_entity
+          | using_entities
+          | filter_expr
+          | additional_join_expr
+          | column_expr
+
+default_entity: "default_entity" ENTITY_NAME
+
+using_entities: "using" ENTITY_NAME ("," ENTITY_NAME)*
+
+filter_expr: "filter" "(" FILTER_BODY ")"
+
+additional_join_expr: "additional_join_expressions" ESCAPED_STRING
+
+// Column expression: simple identifier or call, then alias (with optional 'as')
+column_expr: COL_EXPR alias
+
+alias: ("as"i)? ALIAS
+
+EVENT_NAME: /[A-Za-z_][A-Za-z0-9_]*/
+ENTITY_NAME: /[A-Za-z_][A-Za-z0-9_]*/
+ALIAS: /[A-Za-z_][A-Za-z0-9_]*/
+
+// Everything inside filter(...) except the closing ')'; require at least 1 char
+FILTER_BODY: /[^)]+/
+
+// Simple column or function call without spaces (covers tests); richer SQL left for future
+COL_EXPR: /(?!(?i:filter\b))[A-Za-z_][A-Za-z0-9_]*(\([^)]*\))?/
+
+%import common.INT
+%import common.ESCAPED_STRING
+%import common.WS_INLINE
+%import common.NEWLINE -> _NL
+%ignore WS_INLINE
+%ignore _NL
