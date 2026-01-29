@@ -59,6 +59,27 @@ last_value(attribute=Attribute(attribute_name="test", data_type=dty.TypeBoolean(
 
 
 @aggfunc
+def nth_value(attribute: Attribute, n: int, timestamp: EventTimestamp):
+
+    @Aggregation.register
+    class NthValue(Aggregation):
+        aggregation_name: str = Field(default="nth_value")
+        timestamp: EventTimestamp
+
+        def aggregation_statement(self) -> str:
+            delimiter = "';.,;'"
+            return f"cast(split_part(string_agg(cast({self.joined_attribute_alias} as varchar), {delimiter} order by {self._j}.{timestamp.event_column}), {delimiter}, {n}) as {self.attribute.data_type.default_sql})"
+
+        def _derive_output_type(self):
+            return self.attribute.data_type
+
+    return NthValue(attribute=attribute, timestamp=timestamp)
+
+nth_value(attribute=Attribute(attribute_name="test", data_type=dty.TypeBoolean()), n=3, timestamp=EventTimestamp(event_alias="ts", attribute_name="event_timestamp")).aggregation.aggregation_statement()
+
+
+
+@aggfunc
 def not_null(attribute: Attribute):
 
     @Aggregation.register
