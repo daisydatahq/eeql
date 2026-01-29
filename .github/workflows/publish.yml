@@ -21,12 +21,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Check version file change
+      - name: Detect version line change
         id: version_change
         run: |
-          BASE="origin/${{ github.base_ref }}"
-          git fetch origin "${{ github.base_ref }}" --depth=1
-          if git diff --name-only "$BASE" HEAD | grep -qx "pyproject.toml"; then
+          base="origin/${{ github.base_ref }}"
+          git fetch origin "${{ github.base_ref }}"
+          if git diff --unified=0 "${base}" HEAD -- pyproject.toml | grep -E '^[+-]\s*version\s*='; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -102,7 +102,7 @@ jobs:
       - name: Check version file change
         id: version_change
         run: |
-          if git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -qx "pyproject.toml"; then
+          if git diff --unified=0 "${{ github.event.before }}" "${{ github.sha }}" -- pyproject.toml | grep -E '^[+-]\s*version\s*='; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
