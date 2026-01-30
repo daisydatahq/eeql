@@ -15,6 +15,7 @@ class Entity(BaseModel):
 
     entity_name: str
     entity_id: att.EntityId
+    anonymous_id: Optional[att.AnonymousEntityId] = None
     description: Optional[str] = None
     event_table_prefix: Optional[str] = None
     entity_id_source: Optional[att.EntityIdSource] = None
@@ -31,6 +32,7 @@ class Entity(BaseModel):
 
     @field_validator(
         "entity_id",
+        "anonymous_id",
         "entity_id_source",
         "entity_id_updated_at",
         "event_instance",
@@ -43,6 +45,7 @@ class Entity(BaseModel):
         if isinstance(v, str):
             field_map = dict(
                 entity_id=att.EntityId(),
+                anonymous_id=att.AnonymousEntityId(),
                 entity_id_source=att.EntityIdSource(),
                 entity_id_updated_at=att.EntityIdUpdatedAt(),
                 event_instance=att.EventInstance(),

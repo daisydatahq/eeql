@@ -38,6 +38,11 @@ class EntityId(DefaultAttribute):
     attribute_name: str = Field(default="entity_id")
 
 @Attribute.register
+class AnonymousEntityId(DefaultAttribute):
+    data_type: dty.TypeString = Field(default=dty.TypeString())
+    attribute_name: str = Field(default="anonymous_entity_id")
+
+@Attribute.register
 class EntityIdSource(DefaultAttribute):
     data_type: dty.TypeString = Field(default=dty.TypeString())
     attribute_name: str = Field(default="entity_id_source")
