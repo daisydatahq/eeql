@@ -223,6 +223,15 @@ def infer_sql_backend(conn: Any) -> Tuple[str, str]:
     if module_name.startswith("adbc_driver_postgresql"):
         return ("postgres", "adbc")
     if module_name.startswith("adbc_driver_manager.dbapi"):
+        try:
+            info = conn.adbc_get_info()
+            driver = str(info.get("driver_name", "")).lower()
+            vendor = str(info.get("vendor_name", "")).lower()
+            if "postgres" in driver or "postgresql" in driver or "postgres" in vendor:
+                return ("postgres", "adbc")
+        except Exception:
+            pass
+
         connection_repr = repr(conn).lower()
         if "postgres" in connection_repr or "postgresql" in connection_repr:
             return ("postgres", "adbc")
