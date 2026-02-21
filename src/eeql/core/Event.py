@@ -1,4 +1,4 @@
-from typing import Optional, Union, List, DefaultDict
+from typing import Optional, Union, List, DefaultDict, Any
 from collections import defaultdict
 import os
 from pydantic import (
@@ -11,13 +11,12 @@ from pydantic import (
     computed_field,
     ConfigDict,
 )
-from snowflake import connector
 from eeql.utils import _create_group
 from eeql.core.Attribute import Attribute, ATTRIBUTE_REGISTRY
 from eeql.core.Entity import Entity
 from eeql.vocabulary import attributes as att
 from eeql.core.DataType import DATA_TYPE_REGISTRY
-from eeql.vocabulary import data_types as dty
+from eeql.core.sql_metadata_adapter import get_columns_from_sql
 import yaml
 
 
@@ -142,7 +141,7 @@ class Event(BaseModel):
         event_id: str, # alias
         event_timestamp: str, # alias
         sql: Union[str, FilePath], # sql filepath or sql query
-        conn: connector.SnowflakeConnection, # snowflake connection; TODO: abstract to generic connection class
+        conn: Any,
         entities: Union[Entity, List[Entity]],
         # sql_path: Optional[FilePath]=None,
         table: Optional[str] = None,
@@ -167,28 +166,7 @@ class Event(BaseModel):
                 f.close()
         
         # get column information
-        # TODO: generalize across data warehouses
-        snowflake_data_type_map = {
-            0: dty.TypeInteger(),
-            1: dty.TypeFloat(),
-            2: dty.TypeString(),
-            3: dty.TypeDate(),
-            # 5: "variant",
-            6: dty.TypeTimestamp(),# timestampltz
-            7: dty.TypeTimestamp(),# timestamptz
-            8: dty.TypeTimestamp(),# timestampntz
-            # 9: "object",
-            # 10: "array",
-            # 11: "binary",
-            12: dty.TypeTime(),
-            13: dty.TypeBoolean(),
-        }
-        cur = conn.cursor()
-        metadata_query = f"with query as ({sql}) select * from query where 1=0"
-        cur.execute(metadata_query)
-        column_metadata = cur.description
-        cur.close()
-        columns = {cm.name.lower(): {"data_type": snowflake_data_type_map[cm.type_code]} for cm in column_metadata}
+        columns = get_columns_from_sql(conn=conn, sql=sql)
         # print(columns)
 
 
