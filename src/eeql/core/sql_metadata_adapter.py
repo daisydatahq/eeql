@@ -90,11 +90,31 @@ class PostgresSqlMetadataAdapter:
         metadata_query = f"with query as ({sql}) select * from query where 1=0"
         cur.execute(metadata_query)
         column_metadata = cur.description
+        normalized_columns: list[ColumnMeta] = []
+        for cm in column_metadata:
+            if hasattr(cm, "name"):
+                column_name = cm.name
+            elif isinstance(cm, tuple) and len(cm) > 0:
+                column_name = cm[0]
+            else:
+                raise ValueError(
+                    f"Unsupported Postgres column metadata entry `{cm}` in Event.from_sql()"
+                )
+
+            if hasattr(cm, "type_code"):
+                native_type = cm.type_code
+            elif isinstance(cm, tuple) and len(cm) > 1:
+                native_type = cm[1]
+            else:
+                native_type = None
+
+            normalized_columns.append(ColumnMeta(name=column_name, native_type=native_type))
+
         type_oids = sorted(
             {
-                int(cm.type_code)
-                for cm in column_metadata
-                if isinstance(cm.type_code, int) and cm.type_code > 0
+                int(column.native_type)
+                for column in normalized_columns
+                if isinstance(column.native_type, int) and column.native_type > 0
             }
         )
         oid_to_name = {}
@@ -104,8 +124,11 @@ class PostgresSqlMetadataAdapter:
             oid_to_name = dict(cur.fetchall())
         cur.close()
         return [
-            ColumnMeta(name=cm.name, native_type=oid_to_name.get(cm.type_code, cm.type_code))
-            for cm in column_metadata
+            ColumnMeta(
+                name=column.name,
+                native_type=oid_to_name.get(column.native_type, column.native_type),
+            )
+            for column in normalized_columns
         ]
 
     def to_eeql_type(self, native_type: Any):
@@ -134,17 +157,31 @@ class PostgresSqlMetadataAdapter:
         dt = str(native_type).lower()
         if dt in {"int2", "int4", "int8"}:
             return dty.TypeInteger()
+        if "int8" in dt or "int16" in dt or "int32" in dt or "int64" in dt:
+            return dty.TypeInteger()
         if dt in {"numeric", "decimal", "float4", "float8"}:
+            return dty.TypeFloat()
+        if "numeric" in dt or "decimal" in dt or "float" in dt or "double" in dt:
             return dty.TypeFloat()
         if dt in {"text", "varchar", "bpchar", "uuid", "json", "jsonb"}:
             return dty.TypeString()
+        if "string" in dt or "text" in dt or "json" in dt or "uuid" in dt:
+            return dty.TypeString()
         if dt == "date":
+            return dty.TypeDate()
+        if "date" in dt and "timestamp" not in dt:
             return dty.TypeDate()
         if dt in {"time", "timetz"}:
             return dty.TypeTime()
+        if "time" in dt and "timestamp" not in dt:
+            return dty.TypeTime()
         if dt in {"timestamp", "timestamptz"}:
             return dty.TypeTimestamp()
+        if "timestamp" in dt:
+            return dty.TypeTimestamp()
         if dt == "bool":
+            return dty.TypeBoolean()
+        if "bool" in dt:
             return dty.TypeBoolean()
         raise ValueError(f"Unsupported Postgres data type `{native_type}` in Event.from_sql()")
 
