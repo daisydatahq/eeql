@@ -409,7 +409,13 @@ class JoinedEvent(DatasetEvent):
 
         event_sql = self.event_sql()
         cte_name = self.unique_name
-        final_dataset_columns = [f"{cte_name}.{alias}" for alias, column in self.columns]
+        final_dataset_columns = list()
+        for alias, column in self.columns:
+            cte_alias = f"{cte_name}.{alias}"
+            val = column.aggregation.coalesce_value
+            if val:
+                cte_alias = f"coalesce({cte_alias}, {val})"
+            final_dataset_columns.append(cte_alias)
         final_join_statement = f"left join {cte_name}\non true\n"
         for k in pkey:
             final_join_statement += f"and {self._base}.{k} = {cte_name}.{k}"
