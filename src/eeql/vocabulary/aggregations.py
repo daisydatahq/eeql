@@ -124,6 +124,7 @@ def sum(attribute: Attribute):
     @Aggregation.register
     class Sum(Aggregation):
         aggregation_name: str = Field(default="sum")
+        coalesce_value: int = 0
 
         @field_validator("attribute", mode="before")
         def validate_attribute_type(cls, v):
@@ -204,6 +205,8 @@ def count(attribute: Attribute):
     @Aggregation.register
     class Count(Aggregation):
         aggregation_name: str = Field(default="count")
+        coalesce_value: int = 0
+
 
         def aggregation_statement(self) -> str:
             return f"count({self.joined_attribute_alias})"
@@ -221,6 +224,7 @@ def count_distinct(attribute: Attribute):
     @Aggregation.register
     class CountDistinct(Aggregation):
         aggregation_name: str = Field(default="count_distinct")
+        coalesce_value: int = 0
 
         def aggregation_statement(self) -> str:
             return f"count(distinct {self.joined_attribute_alias})"

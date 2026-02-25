@@ -1,7 +1,7 @@
 from eeql.core.Attribute import Attribute
 from eeql.core.DataType import DataType
-from pydantic import BaseModel, PrivateAttr, computed_field, model_validator
-from typing import Dict, Type
+from pydantic import BaseModel, PrivateAttr, computed_field, model_validator, Field
+from typing import Dict, Type, Any, Optional
 
 
 
@@ -9,6 +9,7 @@ class Aggregation(BaseModel):
     aggregation_name: str
     attribute: Attribute
     _output_type: DataType = PrivateAttr(default=None)
+    coalesce_value: Optional[Any] = None
 
     # @model_validator(mode="before")
     # def check_fields(cls, values):
