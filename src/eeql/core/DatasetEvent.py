@@ -414,7 +414,7 @@ class JoinedEvent(DatasetEvent):
             cte_alias = f"{cte_name}.{alias}"
             val = column.aggregation.coalesce_value
             if val != None:
-                cte_alias = f"coalesce({cte_alias}, {val})"
+                cte_alias = f"coalesce({cte_alias}, {val}) as {alias}"
             final_dataset_columns.append(cte_alias)
         final_join_statement = f"left join {cte_name}\non true\n"
         for k in pkey:
