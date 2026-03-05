@@ -111,7 +111,7 @@ class BaseEvent(DatasetEvent):
         v = values["default_entity"]
         event = values["event"]
         entities = event.entities
-        entity_names = set(list(entities.model_fields.keys()))# + list(getattr(entities, "computed_model_fields", {}).keys()))
+        entity_names = set(list(entities.__class__.model_fields.keys()))# + list(getattr(entities, "computed_model_fields", {}).keys()))
         if v.entity_name not in entity_names:
             event_name = event.event_name
             raise ValueError(f"Default entity incorrectly specified for event {event_name}. User passed `{v}`; valid options are {entity_names}")
@@ -436,4 +436,3 @@ class JoinedEvent(DatasetEvent):
                 join_statement=final_join_statement,
             )
         return sql
-
