@@ -58,7 +58,7 @@ def test_compile_option_b_sql(catalog):
     ds = compiler.compile_to_dataset(ast, catalog)
 
     assert ds.base_event is not None
-    assert len(ds.base_event.columns.model_fields) == 2
+    assert len(ds.base_event.columns.__class__.model_fields) == 2
     assert ds.joined_events is not None
     # ensure SQL renders
     sql = ds.to_sql()

@@ -12,6 +12,7 @@ dependencies = [
     "networkx~=3.0",
     "pydantic>=2.0,<3.0",
     "pyyaml>=6.0.3",
+    "ibis-framework>=11,<12",
     "snowflake-connector-python>=4.1.1,<5.0.0",
     "sqlglot>=23,<24",
     "lark>=1.1.9,<2.0",

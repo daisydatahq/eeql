@@ -1,4 +1,5 @@
 from typing import Optional, List, DefaultDict, Union, Dict
+import ibis
 from pydantic import (
     BaseModel,
     Field,
@@ -14,6 +15,7 @@ from eeql.core.Attribute import Attribute
 from eeql.core.JoinType import JoinType
 from eeql.core.DatasetEvent import BaseEvent, JoinedEvent, DatasetEventSQL
 from eeql.core.Column import BaseDatasetColumn, JoinedDatasetColumn, DerivedDatasetColumn
+from eeql.core.DataType import DataType
 from collections import defaultdict
 
 
@@ -54,6 +56,46 @@ class Dataset(BaseModel):
             return dcm
         else:
             return None
+
+    def _to_ibis_type_token(self, data_type: DataType) -> str:
+        type_name = data_type.data_type_name
+        type_map = {
+            "integer": "int",
+            "string": "string",
+            "float": "float",
+            "boolean": "boolean",
+            "timestamp": "timestamp",
+            "date": "date",
+            "time": "time",
+        }
+        if type_name not in type_map:
+            raise ValueError(f"Unsupported data type `{type_name}` for ibis conversion.")
+        return type_map[type_name]
+
+    def _collect_ibis_schema_tokens(self) -> Dict[str, str]:
+        if not self.base_event:
+            raise ValueError("Base Event must be specified for dataset before generating an ibis table")
+
+        schema: Dict[str, str] = {}
+
+        def _add_column(alias: str, token: str):
+            if alias in schema:
+                raise ValueError(f"Duplicate dataset column alias `{alias}` found while building ibis schema.")
+            schema[alias] = token
+
+        for alias, column in self.base_event.columns:
+            _add_column(alias, self._to_ibis_type_token(column.attribute.data_type))
+
+        if self.joined_events:
+            for _, joined_event in self.joined_events:
+                for alias, column in joined_event.columns:
+                    _add_column(alias, self._to_ibis_type_token(column.aggregation.output_type))
+
+        return schema
+
+    def to_ibis_table(self):
+        schema = self._collect_ibis_schema_tokens()
+        return ibis.table(schema=schema, name=self.dataset_name)
     
 
     def select(
@@ -76,9 +118,10 @@ class Dataset(BaseModel):
         columns = DatasetColumnModel(**{alias: BaseDatasetColumn(attribute=attribute, alias=alias) for alias, attribute in columns.items()})
 
         if isinstance(default_entity, str):
-            if default_entity not in event.entities.model_fields.keys():
+            entity_fields = event.entities.__class__.model_fields
+            if default_entity not in entity_fields.keys():
                 raise ValueError(
-                    f"Invalid entity `{default_entity}` specified for the base dataset event. Valid Options are {list(event.entities.model_fields.keys())}"
+                    f"Invalid entity `{default_entity}` specified for the base dataset event. Valid Options are {list(entity_fields.keys())}"
                 )
             else:
                 default_entity = [e[1] for e in event.entities if e[0] == default_entity][0]

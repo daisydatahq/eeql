@@ -23,11 +23,8 @@ class Aggregation(BaseModel):
 
     @property
     def joined_attribute_alias(self) -> str:
-        if "event_alias" in self.attribute.model_fields.keys():
-            if self.attribute.event_alias:
-                col = self.attribute.event_alias
-            else:
-                col = self.attribute.attribute_name
+        if self.attribute.event_alias:
+            col = self.attribute.event_alias
         else:
             col = self.attribute.attribute_name
         return f"{self._j}.{col}"
